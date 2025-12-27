@@ -1,29 +1,27 @@
 import 'dart:convert';
-import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
-import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:echobeat/config/api_config.dart';
 
 class ApiClient {
   final Dio _dio;
-  final CookieJar _cookieJar;
 
   ApiClient()
       : _dio = Dio(BaseOptions(
           baseUrl: ApiConfig.baseUrl,
           headers: {'Content-Type': 'application/json'},
-        )),
-        _cookieJar = CookieJar() {
-    _dio.interceptors.add(CookieManager(_cookieJar));
-
-    // Agregar la cookie 'session' manualmente
-    final uri = Uri.parse(ApiConfig.baseUrl);
-    final cookie = Cookie(ApiConfig.cookieName, ApiConfig.sessionToken)
-      ..domain = uri.host
-      ..httpOnly = true
-      ..secure = true; // Requerido en iOS si es HTTPS
-    _cookieJar.saveFromResponse(uri, [cookie]);
+        )) {
+    // Interceptor para añadir la cookie 'session' a cada request
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        options.headers['Cookie'] = '${ApiConfig.cookieName}=${ApiConfig.sessionToken}';
+        handler.next(options);
+      },
+      onError: (DioError e, handler) {
+        debugPrint('Dio error: ${e.response?.statusCode} - ${e.message}');
+        handler.next(e);
+      },
+    ));
   }
 
   Future<Map<String, dynamic>> get(String endpoint, {bool requiresAuth = true}) async {
