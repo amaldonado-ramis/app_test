@@ -11,7 +11,6 @@ class ApiService {
     try {
       final data = await _client.get(
         '/search?q=${Uri.encodeComponent(query)}&offset=$offset&type=track',
-        requiresAuth: true,
       );
 
       final tracks = (data['tracks'] as List?)
@@ -33,7 +32,6 @@ class ApiService {
     try {
       final data = await _client.get(
         '/search?q=${Uri.encodeComponent(query)}&offset=$offset&type=album',
-        requiresAuth: true,
       );
 
       final albums = (data['albums'] as List?)
@@ -55,7 +53,6 @@ class ApiService {
     try {
       final data = await _client.get(
         '/stream?trackId=$trackId',
-        requiresAuth: true,
       );
 
       return data['url'] as String? ?? '';
