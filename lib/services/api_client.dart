@@ -10,21 +10,9 @@ class ApiClient {
       : _dio = Dio(BaseOptions(
           baseUrl: ApiConfig.baseUrl,
           headers: {'Content-Type': 'application/json'},
-        )) {
-    // Interceptor para añadir la cookie 'session' a cada request
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        options.headers['Cookie'] = '${ApiConfig.cookieName}=${ApiConfig.sessionToken}';
-        handler.next(options);
-      },
-      onError: (DioError e, handler) {
-        debugPrint('Dio error: ${e.response?.statusCode} - ${e.message}');
-        handler.next(e);
-      },
-    ));
-  }
+        ));
 
-  Future<Map<String, dynamic>> get(String endpoint, {bool requiresAuth = true}) async {
+  Future<Map<String, dynamic>> get(String endpoint) async {
     try {
       final response = await _dio.get(endpoint);
 
