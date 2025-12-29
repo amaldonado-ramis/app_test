@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadPopularTracks() async {
     setState(() => _isLoading = true);
     
+    // In a real app we might cache this or have a "Trending" endpoint
     final tracks = await _searchService.searchTracks('top hits');
     
     setState(() {
@@ -42,13 +43,29 @@ class _HomeScreenState extends State<HomeScreen> {
         slivers: [
           SliverAppBar(
             floating: true,
-            title: Text(
-              'EchoStream',
-              style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
+            pinned: true,
+            expandedHeight: 120.0,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+              title: Text(
+                'Discover',
+                style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none_rounded),
+                onPressed: () {}, // Future feature
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () {}, // Future feature
+              ),
+            ],
           ),
           if (_isLoading)
             const SliverFillRemaining(
@@ -61,45 +78,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 message: 'No tracks found',
               ),
             )
-          else
+          else ...[
             SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Popular Tracks',
-                          style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.refresh, color: Theme.of(context).colorScheme.primary),
-                          onPressed: _loadPopularTracks,
-                        ),
-                      ],
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Trending Now',
+                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _popularTracks.length,
-                    itemBuilder: (context, index) {
-                      final track = _popularTracks[index];
-                      return TrackListTile(
-                        track: track,
-                        onTap: () => _playTrack(index),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 100),
-                ],
+                    IconButton(
+                      icon: Icon(Icons.refresh, color: Theme.of(context).colorScheme.primary),
+                      onPressed: _loadPopularTracks,
+                    ),
+                  ],
+                ),
               ),
             ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final track = _popularTracks[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: TrackListTile(
+                      track: track,
+                      onTap: () => _playTrack(index),
+                    ),
+                  );
+                },
+                childCount: _popularTracks.length,
+              ),
+            ),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+          ],
         ],
       ),
     );

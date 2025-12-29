@@ -1,7 +1,9 @@
+import 'package:audio_session/audio_session.dart';
 import 'package:echostream/models/track.dart';
 import 'package:echostream/services/track_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
 enum RepeatMode { off, all, one }
 
@@ -30,6 +32,9 @@ class PlaybackService {
   Stream<bool> get playingStream => _player.playingStream;
 
   Future<void> init() async {
+    final session = await AudioSession.instance;
+    await session.configure(const AudioSessionConfiguration.music());
+    
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
         _onTrackCompleted();
@@ -61,6 +66,9 @@ class PlaybackService {
     final track = _queue[index];
     
     try {
+      // First check if we already have a stream URL or need to fetch it
+      // Note: Since the API requires fetching the stream URL separately, 
+      // we do it here.
       final streamInfo = await _trackService.getStreamInfo(track.id);
       if (streamInfo == null) {
         debugPrint('Could not get stream URL for track ${track.id}');
@@ -68,7 +76,21 @@ class PlaybackService {
         return;
       }
 
-      await _player.setUrl(streamInfo.url);
+      final mediaItem = MediaItem(
+        id: track.id.toString(),
+        album: track.albumTitle,
+        title: track.title,
+        artist: track.artistName,
+        artUri: track.albumCoverUrl.isNotEmpty ? Uri.parse(track.albumCoverUrl) : null,
+        duration: Duration(seconds: track.duration),
+      );
+
+      final audioSource = AudioSource.uri(
+        Uri.parse(streamInfo.url),
+        tag: mediaItem,
+      );
+
+      await _player.setAudioSource(audioSource);
       await _player.play();
     } catch (e) {
       debugPrint('Error playing track: $e');
@@ -175,7 +197,12 @@ class PlaybackService {
   }
 
   Future<void> _onTrackCompleted() async {
-    await next();
+    if (_repeatMode == RepeatMode.one) {
+       await seek(Duration.zero);
+       await play();
+    } else {
+       await next();
+    }
   }
 
   void toggleShuffle() {

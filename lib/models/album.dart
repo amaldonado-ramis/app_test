@@ -45,10 +45,9 @@ class Album {
 
   String getCoverUrl({int size = 1280}) {
     if (cover == null) return '';
-    final idWithSlashes = cover!.replaceAllMapped(
-      RegExp(r'(\w{1,4})'),
-      (match) => '${match.group(1)}/',
-    ).replaceAll(RegExp(r'/$'), '');
+
+    final idWithSlashes = cover!.split('-').join('/');
+
     return 'https://resources.tidal.com/images/$idWithSlashes/${size}x$size.jpg';
   }
 

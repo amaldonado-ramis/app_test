@@ -7,6 +7,8 @@ environment:
   sdk: ^3.6.0
 
 dependencies:
+  audio_session: 0.2.2
+  just_audio_background: 0.0.1-beta.17
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
