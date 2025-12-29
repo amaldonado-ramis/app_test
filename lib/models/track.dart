@@ -1,11 +1,11 @@
-import 'package:echostream/models/album.dart';
-import 'package:echostream/models/artist.dart';
+import 'package:rhapsody/models/artist.dart';
+import 'package:rhapsody/models/album.dart';
 
 class Track {
   final int id;
   final String title;
   final int duration;
-  final Artist? artist;
+  final Artist artist;
   final List<Artist>? artists;
   final Album? album;
   final String? audioQuality;
@@ -15,7 +15,7 @@ class Track {
     required this.id,
     required this.title,
     required this.duration,
-    this.artist,
+    required this.artist,
     this.artists,
     this.album,
     this.audioQuality,
@@ -23,31 +23,36 @@ class Track {
   });
 
   factory Track.fromJson(Map<String, dynamic> json) {
-    Artist? primaryArtist;
-    List<Artist>? artistList;
-
+    Artist primaryArtist;
     if (json['artist'] != null) {
-      primaryArtist = Artist.fromJson(json['artist'] as Map<String, dynamic>);
+      primaryArtist = Artist.fromJson(json['artist']);
+    } else if (json['artists'] != null && (json['artists'] as List).isNotEmpty) {
+      primaryArtist = Artist.fromJson((json['artists'] as List).first);
+    } else {
+      primaryArtist = Artist(id: 0, name: 'Unknown Artist');
     }
 
-    if (json['artists'] != null && json['artists'] is List) {
-      artistList = (json['artists'] as List)
-          .map((a) => Artist.fromJson(a as Map<String, dynamic>))
+    List<Artist>? artistsList;
+    if (json['artists'] != null) {
+      artistsList = (json['artists'] as List)
+          .map((a) => Artist.fromJson(a))
           .toList();
-      primaryArtist ??= artistList.isNotEmpty ? artistList.first : null;
+    }
+
+    Album? albumData;
+    if (json['album'] != null) {
+      albumData = Album.fromJson(json['album']);
     }
 
     return Track(
-      id: json['id'] as int,
-      title: json['title'] as String? ?? '',
-      duration: json['duration'] as int? ?? 0,
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      title: json['title'] ?? '',
+      duration: json['duration'] ?? 0,
       artist: primaryArtist,
-      artists: artistList,
-      album: json['album'] != null 
-        ? Album.fromJson(json['album'] as Map<String, dynamic>)
-        : null,
-      audioQuality: json['audioQuality'] as String?,
-      popularity: json['popularity'] as int?,
+      artists: artistsList,
+      album: albumData,
+      audioQuality: json['audioQuality'],
+      popularity: json['popularity'],
     );
   }
 
@@ -55,24 +60,12 @@ class Track {
     'id': id,
     'title': title,
     'duration': duration,
-    'artist': artist?.toJson(),
-    'artists': artists?.map((a) => a.toJson()).toList(),
-    'album': album?.toJson(),
-    'audioQuality': audioQuality,
-    'popularity': popularity,
+    'artist': artist.toJson(),
+    if (artists != null) 'artists': artists!.map((a) => a.toJson()).toList(),
+    if (album != null) 'album': album!.toJson(),
+    if (audioQuality != null) 'audioQuality': audioQuality,
+    if (popularity != null) 'popularity': popularity,
   };
-
-  String get artistName => artist?.name ?? 'Unknown Artist';
-  
-  String get albumTitle => album?.title ?? 'Unknown Album';
-  
-  String get albumCoverUrl => album?.getCoverUrl() ?? '';
-
-  String formatDuration() {
-    final minutes = duration ~/ 60;
-    final seconds = duration % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
 
   Track copyWith({
     int? id,
@@ -93,4 +86,19 @@ class Track {
     audioQuality: audioQuality ?? this.audioQuality,
     popularity: popularity ?? this.popularity,
   );
+
+  String get durationFormatted {
+    final minutes = duration ~/ 60;
+    final seconds = duration % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  String get artistNames {
+    if (artists != null && artists!.isNotEmpty) {
+      return artists!.map((a) => a.name).join(', ');
+    }
+    return artist.name;
+  }
+
+  String? get albumCoverUrl => album?.getCoverUrl();
 }

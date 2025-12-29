@@ -13,28 +13,19 @@ class Artist {
 
   factory Artist.fromJson(Map<String, dynamic> json) {
     return Artist(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      picture: json['picture'] as String?,
-      type: json['type'] as String?,
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      name: json['name'] ?? '',
+      picture: json['picture'],
+      type: json['type'],
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
-    'picture': picture,
-    'type': type,
+    if (picture != null) 'picture': picture,
+    if (type != null) 'type': type,
   };
-
-  String getPictureUrl({int size = 750}) {
-    if (picture == null) return '';
-    final idWithSlashes = picture!.replaceAllMapped(
-      RegExp(r'(\w{1,4})'),
-      (match) => '${match.group(1)}/',
-    ).replaceAll(RegExp(r'/$'), '');
-    return 'https://resources.tidal.com/images/$idWithSlashes/${size}x$size.jpg';
-  }
 
   Artist copyWith({
     int? id,
@@ -47,4 +38,11 @@ class Artist {
     picture: picture ?? this.picture,
     type: type ?? this.type,
   );
+
+  String getPictureUrl({int size = 750}) {
+    if (picture == null || picture!.isEmpty) return '';
+    final idWithSlashes = picture!.split('-').join('/');
+
+    return 'https://resources.tidal.com/images/$idWithSlashes/${size}x$size.jpg';
+  }
 }

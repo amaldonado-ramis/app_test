@@ -1,33 +1,32 @@
 class StreamInfo {
   final String url;
-  final String quality;
+  final String? quality;
   final DateTime fetchedAt;
 
   StreamInfo({
     required this.url,
-    required this.quality,
+    this.quality,
     DateTime? fetchedAt,
   }) : fetchedAt = fetchedAt ?? DateTime.now();
 
   bool get isExpired {
     final now = DateTime.now();
-    final age = now.difference(fetchedAt);
-    return age.inHours >= 1;
+    return now.difference(fetchedAt).inHours > 6;
   }
 
   factory StreamInfo.fromJson(Map<String, dynamic> json) {
     return StreamInfo(
-      url: json['url'] as String,
-      quality: json['quality'] as String,
+      url: json['url'],
+      quality: json['quality'],
       fetchedAt: json['fetchedAt'] != null 
-        ? DateTime.parse(json['fetchedAt'] as String)
+        ? DateTime.parse(json['fetchedAt']) 
         : DateTime.now(),
     );
   }
 
   Map<String, dynamic> toJson() => {
     'url': url,
-    'quality': quality,
+    if (quality != null) 'quality': quality,
     'fetchedAt': fetchedAt.toIso8601String(),
   };
 }

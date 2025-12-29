@@ -1,93 +1,124 @@
-import 'package:echostream/models/track.dart';
-import 'package:echostream/services/playback_service.dart';
-import 'package:flutter/foundation.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:flutter/material.dart';
+import 'package:rhapsody/models/track.dart';
+import 'package:rhapsody/services/api/tidal_api_client.dart';
+import 'package:rhapsody/services/playback/audio_player_service.dart';
+import 'package:rhapsody/services/playback/queue_manager.dart';
+import 'package:rhapsody/services/playback/playback_controller.dart';
 
 class PlaybackProvider with ChangeNotifier {
-  final PlaybackService _service = PlaybackService();
-  bool _isInitialized = false;
+  late final PlaybackController _controller;
+  late final AudioPlayerService _audioPlayer;
+  late final QueueManager _queueManager;
+  PlaybackState? _playbackState;
 
-  PlaybackService get service => _service;
-  List<Track> get queue => _service.queue;
-  Track? get currentTrack => _service.currentTrack;
-  int get currentIndex => _service.currentIndex;
-  bool get isShuffled => _service.isShuffled;
-  RepeatMode get repeatMode => _service.repeatMode;
-  bool get hasNext => _service.hasNext;
-  bool get hasPrevious => _service.hasPrevious;
-
-  Stream<Duration> get positionStream => _service.positionStream;
-  Stream<Duration?> get durationStream => _service.durationStream;
-  Stream<PlayerState> get playerStateStream => _service.playerStateStream;
-  Stream<bool> get playingStream => _service.playingStream;
-
-  Future<void> init() async {
-    if (_isInitialized) return;
-    await _service.init();
-    _isInitialized = true;
+  PlaybackProvider() {
+    _audioPlayer = AudioPlayerService();
+    _queueManager = QueueManager();
+    _controller = PlaybackController(_audioPlayer, _queueManager, TidalApiClient());
     
-    _service.playerStateStream.listen((_) {
+    _audioPlayer.playbackStateStream.listen((state) {
+      _playbackState = state;
       notifyListeners();
+      
+      if (state.isCompleted && !_controller.isLoadingTrack) {
+        _handleTrackCompleted();
+      }
     });
   }
 
-  Future<void> setQueue(List<Track> tracks, {int startIndex = 0}) async {
-    await _service.setQueue(tracks, startIndex: startIndex);
+  PlaybackController get controller => _controller;
+  QueueManager get queueManager => _queueManager;
+  Track? get currentTrack => _queueManager.currentTrack;
+  List<Track> get queue => _queueManager.queue;
+  int get currentIndex => _queueManager.currentIndex;
+  bool get shuffleEnabled => _queueManager.shuffleEnabled;
+  RepeatMode get repeatMode => _queueManager.repeatMode;
+  PlaybackState? get playbackState => _playbackState;
+  bool get isPlaying => _playbackState?.isPlaying ?? false;
+  bool get isBuffering => _playbackState?.isBuffering ?? false;
+  bool get isLoadingTrack => _controller.isLoadingTrack;
+
+  Future<void> playTrack(Track track) async {
+    await _controller.playTrack(track);
     notifyListeners();
   }
 
-  Future<void> addToQueue(Track track) async {
-    await _service.addToQueue(track);
-    notifyListeners();
-  }
-
-  Future<void> playTrackAt(int index) async {
-    await _service.playTrackAt(index);
+  Future<void> playQueue(List<Track> tracks, {int startIndex = 0}) async {
+    await _controller.playQueue(tracks, startIndex: startIndex);
     notifyListeners();
   }
 
   Future<void> play() async {
-    await _service.play();
+    await _controller.play();
+    notifyListeners();
   }
 
   Future<void> pause() async {
-    await _service.pause();
+    await _controller.pause();
+    notifyListeners();
   }
 
   Future<void> togglePlayPause() async {
-    await _service.togglePlayPause();
-  }
-
-  Future<void> seek(Duration position) async {
-    await _service.seek(position);
+    await _controller.togglePlayPause();
+    notifyListeners();
   }
 
   Future<void> next() async {
-    await _service.next();
+    await _controller.next();
+    notifyListeners();
   }
 
   Future<void> previous() async {
-    await _service.previous();
+    await _controller.previous();
+    notifyListeners();
+  }
+
+  Future<void> seek(Duration position) async {
+    await _controller.seek(position);
+  }
+
+  Future<void> addToQueue(Track track) async {
+    await _controller.addToQueue(track);
+    notifyListeners();
+  }
+
+  Future<void> addNextInQueue(Track track) async {
+    await _controller.addNextInQueue(track);
+    notifyListeners();
   }
 
   void toggleShuffle() {
-    _service.toggleShuffle();
+    _controller.toggleShuffle();
     notifyListeners();
   }
 
   void cycleRepeatMode() {
-    _service.cycleRepeatMode();
+    _controller.cycleRepeatMode();
     notifyListeners();
   }
 
-  void clearQueue() {
-    _service.clearQueue();
+  void removeFromQueue(int index) {
+    _queueManager.removeFromQueue(index);
     notifyListeners();
+  }
+
+  void jumpToIndex(int index) {
+    _queueManager.jumpToIndex(index);
+    final track = _queueManager.currentTrack;
+    if (track != null) {
+      playTrack(track);
+    }
+  }
+
+  Future<void> _handleTrackCompleted() async {
+    if (_queueManager.hasNext) {
+      await next();
+    }
   }
 
   @override
   void dispose() {
-    _service.dispose();
+    _controller.dispose();
     super.dispose();
   }
 }

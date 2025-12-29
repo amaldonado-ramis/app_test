@@ -1,10 +1,13 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:echostream/providers/playback_provider.dart';
-import 'package:echostream/services/album_service.dart';
-import 'package:echostream/widgets/empty_state.dart';
-import 'package:echostream/widgets/track_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:rhapsody/models/album.dart';
+import 'package:rhapsody/models/track.dart';
+import 'package:rhapsody/services/api/tidal_api_client.dart';
+import 'package:rhapsody/services/api/album_api.dart';
+import 'package:rhapsody/providers/playback_provider.dart';
+import 'package:rhapsody/widgets/track_list_item.dart';
+import 'package:rhapsody/theme.dart';
 
 class AlbumDetailScreen extends StatefulWidget {
   final String albumId;
@@ -16,25 +19,55 @@ class AlbumDetailScreen extends StatefulWidget {
 }
 
 class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
-  final AlbumService _albumService = AlbumService();
-  AlbumDetails? _albumDetails;
+  final _apiClient = TidalApiClient();
+  late final AlbumApi _albumApi;
+  
   bool _isLoading = true;
+  Album? _album;
+  List<Track> _tracks = [];
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadAlbum();
+    _albumApi = AlbumApi(_apiClient);
+    _loadAlbumDetails();
   }
 
-  Future<void> _loadAlbum() async {
-    setState(() => _isLoading = true);
-    
-    final details = await _albumService.getAlbumDetails(widget.albumId);
-    
+  @override
+  void dispose() {
+    _apiClient.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAlbumDetails() async {
     setState(() {
-      _albumDetails = details;
-      _isLoading = false;
+      _isLoading = true;
+      _error = null;
     });
+
+    try {
+      final details = await _albumApi.getAlbumDetails(widget.albumId);
+      if (details != null && mounted) {
+        setState(() {
+          _album = details.album;
+          _tracks = details.tracks;
+          _isLoading = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _error = 'Could not load album details';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Error loading album: $e';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -46,15 +79,28 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
       );
     }
 
-    if (_albumDetails == null) {
+    if (_error != null || _album == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const EmptyState(icon: Icons.error, message: 'Failed to load album'),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                _error ?? 'Album not found',
+                style: context.textStyles.bodyLarge,
+              ),
+            ],
+          ),
+        ),
       );
     }
-
-    final album = _albumDetails!.album;
-    final tracks = _albumDetails!.tracks;
 
     return Scaffold(
       body: CustomScrollView(
@@ -63,99 +109,142 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
             expandedHeight: 300,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              background: album.getCoverUrl().isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: album.getCoverUrl(),
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      child: Icon(Icons.album, size: 120, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              background: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Text(
-                    album.title,
-                    style: Theme.of(context).textTheme.headlineMedium!.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  if (album.artist != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      album.artist!.name,
-                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  if (_album!.cover != null && _album!.cover!.isNotEmpty)
+                    CachedNetworkImage(
+                      imageUrl: _album!.getCoverUrl(),
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        child: Icon(Icons.album, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                    )
+                  else
+                    Container(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      child: Icon(Icons.album, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.7),
+                        ],
                       ),
                     ),
-                  ],
-                  if (album.releaseDate != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      album.releaseDate!,
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      FilledButton.icon(
-                        onPressed: tracks.isNotEmpty ? () => _playAlbum() : null,
-                        icon: Icon(Icons.play_arrow, color: Theme.of(context).colorScheme.onPrimary),
-                        label: Text('Play', style: TextStyle(color: Theme.of(context).colorScheme.onPrimary)),
-                      ),
-                      const SizedBox(width: 12),
-                      OutlinedButton.icon(
-                        onPressed: tracks.isNotEmpty ? () => _shuffleAlbum() : null,
-                        icon: const Icon(Icons.shuffle),
-                        label: const Text('Shuffle'),
-                      ),
-                    ],
                   ),
                 ],
               ),
             ),
           ),
-          if (tracks.isEmpty)
-            const SliverFillRemaining(
-              child: EmptyState(icon: Icons.music_note, message: 'No tracks found'),
-            )
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => TrackListTile(
-                  track: tracks[index],
-                  onTap: () => _playTrack(index),
-                  showAlbumArt: false,
-                ),
-                childCount: tracks.length,
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: AppSpacing.paddingMd,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_album!.title, style: context.textStyles.headlineMedium?.bold),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    _album!.artistNames,
+                    style: context.textStyles.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  if (_album!.releaseDate != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      _album!.releaseDate!.split('-')[0],
+                      style: context.textStyles.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    children: [
+                      FilledButton.icon(
+                        onPressed: _tracks.isNotEmpty
+                          ? () {
+                              final playback = context.read<PlaybackProvider>();
+                              playback.playQueue(_tracks);
+                            }
+                          : null,
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Play'),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      OutlinedButton.icon(
+                        onPressed: _tracks.isNotEmpty
+                          ? () {
+                              final playback = context.read<PlaybackProvider>();
+                              playback.queueManager.toggleShuffle();
+                              playback.playQueue(_tracks);
+                            }
+                          : null,
+                        icon: const Icon(Icons.shuffle),
+                        label: const Text('Shuffle'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ),
+          if (_tracks.isNotEmpty)
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final track = _tracks[index];
+                  return TrackListItem(
+                    track: track,
+                    showAlbumArt: false,
+                    onTap: () {
+                      final playback = context.read<PlaybackProvider>();
+                      playback.playQueue(_tracks, startIndex: index);
+                    },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          track.durationFormatted,
+                          style: context.textStyles.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                      ],
+                    ),
+                  );
+                },
+                childCount: _tracks.length,
+              ),
+            )
+          else
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Center(
+                  child: Text(
+                    'No tracks available',
+                    style: context.textStyles.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
-  }
-
-  void _playAlbum() {
-    final playbackProvider = context.read<PlaybackProvider>();
-    playbackProvider.setQueue(_albumDetails!.tracks, startIndex: 0);
-  }
-
-  void _shuffleAlbum() {
-    final playbackProvider = context.read<PlaybackProvider>();
-    playbackProvider.setQueue(_albumDetails!.tracks, startIndex: 0);
-    playbackProvider.toggleShuffle();
-  }
-
-  void _playTrack(int index) {
-    final playbackProvider = context.read<PlaybackProvider>();
-    playbackProvider.setQueue(_albumDetails!.tracks, startIndex: index);
   }
 }

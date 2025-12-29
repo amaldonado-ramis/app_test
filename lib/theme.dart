@@ -38,6 +38,7 @@ class AppRadius {
   static const double md = 12.0;
   static const double lg = 16.0;
   static const double xl = 24.0;
+  static const double full = 999.0;
 }
 
 // =============================================================================
@@ -78,73 +79,54 @@ extension TextStyleExtensions on TextStyle {
 // COLORS
 // =============================================================================
 
-/// Vibrant, energetic color palette for music streaming app (light mode)
 class LightModeColors {
-  // Primary: Vibrant purple
-  static const lightPrimary = Color(0xFF8B5CF6);
+  // More refined, softer light mode
+  static const lightPrimary = Color(0xFF1DB954); // Spotify Green
   static const lightOnPrimary = Color(0xFFFFFFFF);
-  static const lightPrimaryContainer = Color(0xFFEDE9FE);
-  static const lightOnPrimaryContainer = Color(0xFF4C1D95);
-
-  // Secondary: Electric blue
-  static const lightSecondary = Color(0xFF3B82F6);
+  static const lightPrimaryContainer = Color(0xFFD3EBCD);
+  static const lightOnPrimaryContainer = Color(0xFF07210D);
+  
+  static const lightSecondary = Color(0xFF121212); // Deep Black for contrast
   static const lightOnSecondary = Color(0xFFFFFFFF);
-
-  // Tertiary: Pink accent
-  static const lightTertiary = Color(0xFFEC4899);
+  
+  static const lightTertiary = Color(0xFF6C757D);
   static const lightOnTertiary = Color(0xFFFFFFFF);
-
-  // Error colors
-  static const lightError = Color(0xFFEF4444);
+  
+  static const lightError = Color(0xFFBA1A1A);
   static const lightOnError = Color(0xFFFFFFFF);
-  static const lightErrorContainer = Color(0xFFFEE2E2);
-  static const lightOnErrorContainer = Color(0xFF7F1D1D);
-
-  // Surface and background: Clean white with subtle grays
+  
   static const lightSurface = Color(0xFFFFFFFF);
-  static const lightOnSurface = Color(0xFF18181B);
-  static const lightBackground = Color(0xFFFAFAFA);
-  static const lightSurfaceVariant = Color(0xFFF4F4F5);
-  static const lightOnSurfaceVariant = Color(0xFF52525B);
-
-  // Outline and shadow
-  static const lightOutline = Color(0xFFE4E4E7);
-  static const lightShadow = Color(0xFF000000);
-  static const lightInversePrimary = Color(0xFFA78BFA);
+  static const lightOnSurface = Color(0xFF121212);
+  static const lightBackground = Color(0xFFF9F9F9); // Slightly off-white
+  static const lightSurfaceVariant = Color(0xFFF0F0F0);
+  static const lightOnSurfaceVariant = Color(0xFF5E5E5E);
+  
+  static const lightOutline = Color(0xFFE0E0E0);
 }
 
-/// Vibrant, energetic color palette for music streaming app (dark mode)
 class DarkModeColors {
-  // Primary: Lighter purple for visibility
-  static const darkPrimary = Color(0xFFA78BFA);
-  static const darkOnPrimary = Color(0xFF4C1D95);
-  static const darkPrimaryContainer = Color(0xFF6D28D9);
-  static const darkOnPrimaryContainer = Color(0xFFEDE9FE);
-
-  // Secondary: Brighter blue
-  static const darkSecondary = Color(0xFF60A5FA);
-  static const darkOnSecondary = Color(0xFF1E3A8A);
-
-  // Tertiary: Bright pink
-  static const darkTertiary = Color(0xFFF472B6);
-  static const darkOnTertiary = Color(0xFF831843);
-
-  // Error colors
-  static const darkError = Color(0xFFF87171);
-  static const darkOnError = Color(0xFF7F1D1D);
-  static const darkErrorContainer = Color(0xFF991B1B);
-  static const darkOnErrorContainer = Color(0xFFFEE2E2);
-
-  // Surface and background: Deep blacks with subtle elevation
-  static const darkSurface = Color(0xFF0A0A0A);
-  static const darkOnSurface = Color(0xFFF4F4F5);
-  static const darkSurfaceVariant = Color(0xFF1A1A1A);
-  static const darkOnSurfaceVariant = Color(0xFFA1A1AA);
-
-  // Outline and shadow
-  static const darkOutline = Color(0xFF27272A);
-  static const darkShadow = Color(0xFF000000);
-  static const darkInversePrimary = Color(0xFF8B5CF6);
+  // True Black / AMOLED Friendly
+  static const darkPrimary = Color(0xFF1ED760); // Vibrant Green
+  static const darkOnPrimary = Color(0xFF000000);
+  static const darkPrimaryContainer = Color(0xFF004D20);
+  static const darkOnPrimaryContainer = Color(0xFF8FFFA3);
+  
+  static const darkSecondary = Color(0xFFFFFFFF);
+  static const darkOnSecondary = Color(0xFF000000);
+  
+  static const darkTertiary = Color(0xFFB3B3B3);
+  static const darkOnTertiary = Color(0xFF000000);
+  
+  static const darkError = Color(0xFFFFB4AB);
+  static const darkOnError = Color(0xFF690005);
+  
+  static const darkSurface = Color(0xFF121212); // Soft Black
+  static const darkOnSurface = Color(0xFFFFFFFF);
+  static const darkBackground = Color(0xFF000000); // True Black
+  static const darkSurfaceVariant = Color(0xFF1E1E1E); // Slightly lighter for cards
+  static const darkOnSurfaceVariant = Color(0xFFB3B3B3);
+  
+  static const darkOutline = Color(0xFF333333);
 }
 
 /// Font size constants
@@ -184,15 +166,11 @@ ThemeData get lightTheme => ThemeData(
     onTertiary: LightModeColors.lightOnTertiary,
     error: LightModeColors.lightError,
     onError: LightModeColors.lightOnError,
-    errorContainer: LightModeColors.lightErrorContainer,
-    onErrorContainer: LightModeColors.lightOnErrorContainer,
     surface: LightModeColors.lightSurface,
     onSurface: LightModeColors.lightOnSurface,
     surfaceContainerHighest: LightModeColors.lightSurfaceVariant,
     onSurfaceVariant: LightModeColors.lightOnSurfaceVariant,
     outline: LightModeColors.lightOutline,
-    shadow: LightModeColors.lightShadow,
-    inversePrimary: LightModeColors.lightInversePrimary,
   ),
   brightness: Brightness.light,
   scaffoldBackgroundColor: LightModeColors.lightBackground,
@@ -201,16 +179,28 @@ ThemeData get lightTheme => ThemeData(
     foregroundColor: LightModeColors.lightOnSurface,
     elevation: 0,
     scrolledUnderElevation: 0,
+    centerTitle: false,
   ),
   cardTheme: CardThemeData(
     elevation: 0,
+    color: LightModeColors.lightSurface,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-      side: BorderSide(
-        color: LightModeColors.lightOutline.withValues(alpha: 0.2),
-        width: 1,
-      ),
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      side: const BorderSide(color: LightModeColors.lightOutline, width: 0.5),
     ),
+    margin: EdgeInsets.zero,
+  ),
+  bottomSheetTheme: const BottomSheetThemeData(
+    backgroundColor: LightModeColors.lightSurface,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+    ),
+  ),
+  dividerTheme: const DividerThemeData(
+    color: LightModeColors.lightOutline,
+    thickness: 0.5,
+    space: 1,
   ),
   textTheme: _buildTextTheme(Brightness.light),
 );
@@ -229,33 +219,43 @@ ThemeData get darkTheme => ThemeData(
     onTertiary: DarkModeColors.darkOnTertiary,
     error: DarkModeColors.darkError,
     onError: DarkModeColors.darkOnError,
-    errorContainer: DarkModeColors.darkErrorContainer,
-    onErrorContainer: DarkModeColors.darkOnErrorContainer,
     surface: DarkModeColors.darkSurface,
     onSurface: DarkModeColors.darkOnSurface,
     surfaceContainerHighest: DarkModeColors.darkSurfaceVariant,
     onSurfaceVariant: DarkModeColors.darkOnSurfaceVariant,
     outline: DarkModeColors.darkOutline,
-    shadow: DarkModeColors.darkShadow,
-    inversePrimary: DarkModeColors.darkInversePrimary,
   ),
   brightness: Brightness.dark,
-  scaffoldBackgroundColor: DarkModeColors.darkSurface,
+  scaffoldBackgroundColor: DarkModeColors.darkBackground,
   appBarTheme: const AppBarTheme(
     backgroundColor: Colors.transparent,
     foregroundColor: DarkModeColors.darkOnSurface,
     elevation: 0,
     scrolledUnderElevation: 0,
+    centerTitle: false,
   ),
   cardTheme: CardThemeData(
     elevation: 0,
+    color: DarkModeColors.darkSurfaceVariant,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-      side: BorderSide(
-        color: DarkModeColors.darkOutline.withValues(alpha: 0.2),
-        width: 1,
-      ),
+      borderRadius: BorderRadius.circular(AppRadius.md),
     ),
+    margin: EdgeInsets.zero,
+  ),
+  bottomSheetTheme: const BottomSheetThemeData(
+    backgroundColor: DarkModeColors.darkSurfaceVariant,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+    ),
+  ),
+  dividerTheme: const DividerThemeData(
+    color: DarkModeColors.darkOutline,
+    thickness: 0.5,
+    space: 1,
+  ),
+  iconTheme: const IconThemeData(
+    color: DarkModeColors.darkOnSurface,
   ),
   textTheme: _buildTextTheme(Brightness.dark),
 );
@@ -265,25 +265,28 @@ TextTheme _buildTextTheme(Brightness brightness) {
   return TextTheme(
     displayLarge: GoogleFonts.inter(
       fontSize: FontSizes.displayLarge,
-      fontWeight: FontWeight.w400,
-      letterSpacing: -0.25,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -1.0,
     ),
     displayMedium: GoogleFonts.inter(
       fontSize: FontSizes.displayMedium,
-      fontWeight: FontWeight.w400,
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.5,
     ),
     displaySmall: GoogleFonts.inter(
       fontSize: FontSizes.displaySmall,
-      fontWeight: FontWeight.w400,
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.5,
     ),
     headlineLarge: GoogleFonts.inter(
       fontSize: FontSizes.headlineLarge,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
       letterSpacing: -0.5,
     ),
     headlineMedium: GoogleFonts.inter(
       fontSize: FontSizes.headlineMedium,
       fontWeight: FontWeight.w600,
+      letterSpacing: -0.5,
     ),
     headlineSmall: GoogleFonts.inter(
       fontSize: FontSizes.headlineSmall,
@@ -295,15 +298,15 @@ TextTheme _buildTextTheme(Brightness brightness) {
     ),
     titleMedium: GoogleFonts.inter(
       fontSize: FontSizes.titleMedium,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w600,
     ),
     titleSmall: GoogleFonts.inter(
       fontSize: FontSizes.titleSmall,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w600,
     ),
     labelLarge: GoogleFonts.inter(
       fontSize: FontSizes.labelLarge,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w600,
       letterSpacing: 0.1,
     ),
     labelMedium: GoogleFonts.inter(

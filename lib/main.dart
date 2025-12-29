@@ -1,22 +1,12 @@
-import 'package:echostream/providers/liked_songs_provider.dart';
-import 'package:echostream/providers/playback_provider.dart';
-import 'package:echostream/providers/user_playlist_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
-import 'theme.dart';
-import 'nav.dart';
+import 'package:rhapsody/theme.dart';
+import 'package:rhapsody/nav.dart';
+import 'package:rhapsody/providers/playback_provider.dart';
+import 'package:rhapsody/providers/library_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (!kIsWeb) {
-    await JustAudioBackground.init(
-      androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
-      androidNotificationChannelName: 'Audio playback',
-      androidNotificationOngoing: true,
-    );
-  }
   runApp(const MyApp());
 }
 
@@ -27,16 +17,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => PlaybackProvider()..init()),
-        ChangeNotifierProvider(create: (_) => LikedSongsProvider()..init()),
-        ChangeNotifierProvider(create: (_) => UserPlaylistProvider()..init()),
+        ChangeNotifierProvider(create: (_) => PlaybackProvider()),
+        ChangeNotifierProvider(create: (_) => LibraryProvider()..loadData()),
       ],
       child: MaterialApp.router(
-        title: 'EchoStream',
+        title: 'Rhapsody',
         debugShowCheckedModeBanner: false,
         theme: lightTheme,
         darkTheme: darkTheme,
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.dark,
         routerConfig: AppRouter.router,
       ),
     );

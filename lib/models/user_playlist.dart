@@ -13,10 +13,10 @@ class UserPlaylist {
 
   factory UserPlaylist.fromJson(Map<String, dynamic> json) {
     return UserPlaylist(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      trackIds: (json['trackIds'] as List).cast<int>(),
+      id: json['id'],
+      name: json['name'],
+      createdAt: DateTime.parse(json['createdAt']),
+      trackIds: List<int>.from(json['trackIds']),
     );
   }
 
@@ -38,4 +38,6 @@ class UserPlaylist {
     createdAt: createdAt ?? this.createdAt,
     trackIds: trackIds ?? this.trackIds,
   );
+
+  int get trackCount => trackIds.length;
 }
