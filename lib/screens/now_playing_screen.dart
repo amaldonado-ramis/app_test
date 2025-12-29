@@ -1,8 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:echostream/providers/liked_songs_provider.dart';
+import 'package:echostream/providers/playback_provider.dart';
+import 'package:echostream/services/playback_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:echobeat/providers/playback_provider.dart';
-import 'package:echobeat/providers/library_provider.dart';
-import 'package:echobeat/theme.dart';
 
 class NowPlayingScreen extends StatelessWidget {
   const NowPlayingScreen({super.key});
@@ -10,201 +11,244 @@ class NowPlayingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final playbackProvider = context.watch<PlaybackProvider>();
-    final libraryProvider = context.watch<LibraryProvider>();
-    final track = playbackProvider.currentTrack;
+    final likedProvider = context.watch<LikedSongsProvider>();
+    final currentTrack = playbackProvider.currentTrack;
 
-    if (track == null) {
+    if (currentTrack == null) {
       return Scaffold(
-        appBar: AppBar(),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.keyboard_arrow_down),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
         body: const Center(child: Text('No track playing')),
       );
     }
 
-    final isLiked = libraryProvider.isLiked(track.id);
+    final isLiked = likedProvider.isLiked(currentTrack.id);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-      ),
-      extendBodyBehindAppBar: true,
       body: SafeArea(
-        child: Padding(
-          padding: AppSpacing.paddingLg,
-          child: Column(
-            children: [
-              const Spacer(),
-              AspectRatio(
-                aspectRatio: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.keyboard_arrow_down, size: 32),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: track.coverUrl.isNotEmpty
-                      ? Image.network(
-                          track.coverUrl,
+                  Text('Now Playing', style: Theme.of(context).textTheme.titleMedium),
+                  IconButton(
+                    icon: const Icon(Icons.more_vert, size: 28),
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: currentTrack.albumCoverUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: currentTrack.albumCoverUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(
-                            Icons.music_note,
-                            size: 80,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          placeholder: (_, __) => Container(
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            child: Icon(Icons.music_note, size: 120, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         )
-                      : Icon(
-                          Icons.music_note,
-                          size: 80,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      : Container(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          child: Icon(Icons.music_note, size: 120, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.xxl),
-              Row(
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          track.title,
-                          style: context.textStyles.headlineSmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              currentTrack.title,
+                              style: Theme.of(context).textTheme.headlineSmall!.copyWith(fontWeight: FontWeight.bold),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              currentTrack.artistName,
+                              style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          track.artist,
-                          style: context.textStyles.bodyLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      isLiked ? Icons.favorite : Icons.favorite_border,
-                      color: isLiked ? Theme.of(context).colorScheme.secondary : null,
-                    ),
-                    iconSize: 32,
-                    onPressed: () => libraryProvider.toggleLike(track),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _ProgressBar(
-                position: playbackProvider.position,
-                duration: playbackProvider.duration,
-                onSeek: playbackProvider.seek,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.skip_previous),
-                    iconSize: 40,
-                    onPressed: playbackProvider.hasPrevious
-                        ? playbackProvider.playPrevious
-                        : null,
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        playbackProvider.isPlaying ? Icons.pause : Icons.play_arrow,
-                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
-                      iconSize: 48,
-                      onPressed: playbackProvider.togglePlayPause,
-                    ),
+                      IconButton(
+                        icon: Icon(
+                          isLiked ? Icons.favorite : Icons.favorite_border,
+                          color: isLiked ? Theme.of(context).colorScheme.tertiary : Theme.of(context).colorScheme.onSurfaceVariant,
+                          size: 32,
+                        ),
+                        onPressed: () => likedProvider.toggleLike(currentTrack.id),
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.skip_next),
-                    iconSize: 40,
-                    onPressed: playbackProvider.hasNext
-                        ? playbackProvider.playNext
-                        : null,
+                  const SizedBox(height: 32),
+                  ProgressBar(),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          playbackProvider.isShuffled ? Icons.shuffle_on : Icons.shuffle,
+                          color: playbackProvider.isShuffled 
+                            ? Theme.of(context).colorScheme.primary 
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        onPressed: playbackProvider.toggleShuffle,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.skip_previous,
+                          size: 40,
+                          color: playbackProvider.hasPrevious 
+                            ? Theme.of(context).colorScheme.onSurface 
+                            : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                        ),
+                        onPressed: playbackProvider.hasPrevious ? playbackProvider.previous : null,
+                      ),
+                      StreamBuilder<bool>(
+                        stream: playbackProvider.playingStream,
+                        builder: (context, snapshot) {
+                          final isPlaying = snapshot.data ?? false;
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: Icon(
+                                isPlaying ? Icons.pause : Icons.play_arrow,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                                size: 40,
+                              ),
+                              onPressed: playbackProvider.togglePlayPause,
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.skip_next,
+                          size: 40,
+                          color: playbackProvider.hasNext 
+                            ? Theme.of(context).colorScheme.onSurface 
+                            : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                        ),
+                        onPressed: playbackProvider.hasNext ? playbackProvider.next : null,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          playbackProvider.repeatMode == RepeatMode.off
+                              ? Icons.repeat
+                              : playbackProvider.repeatMode == RepeatMode.all
+                                  ? Icons.repeat_on
+                                  : Icons.repeat_one_on,
+                          color: playbackProvider.repeatMode != RepeatMode.off
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        onPressed: playbackProvider.cycleRepeatMode,
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 32),
                 ],
               ),
-              const Spacer(),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _ProgressBar extends StatelessWidget {
-  final Duration position;
-  final Duration duration;
-  final Function(Duration) onSeek;
-
-  const _ProgressBar({
-    required this.position,
-    required this.duration,
-    required this.onSeek,
-  });
-
+class ProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final progress = duration.inMilliseconds > 0
-        ? position.inMilliseconds / duration.inMilliseconds
-        : 0.0;
+    final playbackProvider = context.watch<PlaybackProvider>();
 
-    return Column(
-      children: [
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 4,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-          ),
-          child: Slider(
-            value: progress.clamp(0.0, 1.0),
-            onChanged: (value) {
-              final newPosition = Duration(
-                milliseconds: (value * duration.inMilliseconds).round(),
-              );
-              onSeek(newPosition);
-            },
-          ),
-        ),
-        Padding(
-          padding: AppSpacing.horizontalSm,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _formatDuration(position),
-                style: context.textStyles.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return StreamBuilder<Duration>(
+      stream: playbackProvider.positionStream,
+      builder: (context, positionSnapshot) {
+        return StreamBuilder<Duration?>(
+          stream: playbackProvider.durationStream,
+          builder: (context, durationSnapshot) {
+            final position = positionSnapshot.data ?? Duration.zero;
+            final duration = durationSnapshot.data ?? Duration.zero;
+            final progress = duration.inSeconds > 0 ? position.inSeconds / duration.inSeconds : 0.0;
+
+            return Column(
+              children: [
+                SliderTheme(
+                  data: SliderThemeData(
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                    activeTrackColor: Theme.of(context).colorScheme.primary,
+                    inactiveTrackColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    thumbColor: Theme.of(context).colorScheme.primary,
+                  ),
+                  child: Slider(
+                    value: progress.clamp(0.0, 1.0),
+                    onChanged: (value) {
+                      final newPosition = Duration(seconds: (value * duration.inSeconds).round());
+                      playbackProvider.seek(newPosition);
+                    },
+                  ),
                 ),
-              ),
-              Text(
-                _formatDuration(duration),
-                style: context.textStyles.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _formatDuration(position),
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        _formatDuration(duration),
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ],
+              ],
+            );
+          },
+        );
+      },
     );
   }
 

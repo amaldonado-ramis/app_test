@@ -1,9 +1,10 @@
+import 'package:echostream/providers/liked_songs_provider.dart';
+import 'package:echostream/providers/playback_provider.dart';
+import 'package:echostream/providers/user_playlist_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:echobeat/theme.dart';
-import 'package:echobeat/nav.dart';
-import 'package:echobeat/providers/playback_provider.dart';
-import 'package:echobeat/providers/library_provider.dart';
+import 'theme.dart';
+import 'nav.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,11 +18,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => PlaybackProvider()),
-        ChangeNotifierProvider(create: (_) => LibraryProvider()..initialize()),
+        ChangeNotifierProvider(create: (_) => PlaybackProvider()..init()),
+        ChangeNotifierProvider(create: (_) => LikedSongsProvider()..init()),
+        ChangeNotifierProvider(create: (_) => UserPlaylistProvider()..init()),
       ],
       child: MaterialApp.router(
-        title: 'EchoBeat',
+        title: 'EchoStream',
         debugShowCheckedModeBanner: false,
         theme: lightTheme,
         darkTheme: darkTheme,

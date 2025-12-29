@@ -1,22 +1,24 @@
-class Playlist {
+class UserPlaylist {
   final String id;
   final String name;
   final DateTime createdAt;
   final List<int> trackIds;
 
-  Playlist({
+  UserPlaylist({
     required this.id,
     required this.name,
     required this.createdAt,
     required this.trackIds,
   });
 
-  factory Playlist.fromJson(Map<String, dynamic> json) => Playlist(
-    id: json['id'] as String,
-    name: json['name'] as String,
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    trackIds: (json['trackIds'] as List).map((e) => e as int).toList(),
-  );
+  factory UserPlaylist.fromJson(Map<String, dynamic> json) {
+    return UserPlaylist(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      trackIds: (json['trackIds'] as List).cast<int>(),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -25,12 +27,12 @@ class Playlist {
     'trackIds': trackIds,
   };
 
-  Playlist copyWith({
+  UserPlaylist copyWith({
     String? id,
     String? name,
     DateTime? createdAt,
     List<int>? trackIds,
-  }) => Playlist(
+  }) => UserPlaylist(
     id: id ?? this.id,
     name: name ?? this.name,
     createdAt: createdAt ?? this.createdAt,

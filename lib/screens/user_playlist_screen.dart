@@ -1,20 +1,22 @@
 import 'package:echostream/models/track.dart';
-import 'package:echostream/providers/liked_songs_provider.dart';
 import 'package:echostream/providers/playback_provider.dart';
+import 'package:echostream/providers/user_playlist_provider.dart';
 import 'package:echostream/services/track_service.dart';
 import 'package:echostream/widgets/empty_state.dart';
 import 'package:echostream/widgets/track_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class LikedSongsScreen extends StatefulWidget {
-  const LikedSongsScreen({super.key});
+class UserPlaylistScreen extends StatefulWidget {
+  final String playlistId;
+
+  const UserPlaylistScreen({super.key, required this.playlistId});
 
   @override
-  State<LikedSongsScreen> createState() => _LikedSongsScreenState();
+  State<UserPlaylistScreen> createState() => _UserPlaylistScreenState();
 }
 
-class _LikedSongsScreenState extends State<LikedSongsScreen> {
+class _UserPlaylistScreenState extends State<UserPlaylistScreen> {
   final TrackService _trackService = TrackService();
   List<Track> _tracks = [];
   bool _isLoading = true;
@@ -28,11 +30,16 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
   Future<void> _loadTracks() async {
     setState(() => _isLoading = true);
     
-    final likedProvider = context.read<LikedSongsProvider>();
-    final trackIds = likedProvider.likedSongs.toList();
+    final playlistProvider = context.read<UserPlaylistProvider>();
+    final playlist = playlistProvider.getPlaylist(widget.playlistId);
+    
+    if (playlist == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
     
     final tracks = <Track>[];
-    for (final id in trackIds) {
+    for (final id in playlist.trackIds) {
       final track = await _trackService.getTrackMetadata(id);
       if (track != null) {
         tracks.add(track);
@@ -47,6 +54,16 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final playlistProvider = context.watch<UserPlaylistProvider>();
+    final playlist = playlistProvider.getPlaylist(widget.playlistId);
+
+    if (playlist == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const EmptyState(icon: Icons.error, message: 'Playlist not found'),
+      );
+    }
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -54,21 +71,31 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
             pinned: true,
             expandedHeight: 200,
             flexibleSpace: FlexibleSpaceBar(
-              title: const Text('Liked Songs'),
+              title: Text(playlist.name),
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Theme.of(context).colorScheme.tertiary,
                       Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.secondary,
                     ],
                   ),
                 ),
-                child: Icon(Icons.favorite, size: 80, color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3)),
+                child: Icon(Icons.playlist_play, size: 80, color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3)),
               ),
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () => _showRenameDialog(playlist.name),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () => _showDeleteDialog(),
+              ),
+            ],
           ),
           if (_isLoading)
             const SliverFillRemaining(
@@ -77,8 +104,8 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
           else if (_tracks.isEmpty)
             const SliverFillRemaining(
               child: EmptyState(
-                icon: Icons.favorite_border,
-                message: 'No liked songs yet\nStart liking songs to see them here',
+                icon: Icons.playlist_play,
+                message: 'No tracks in this playlist\nAdd tracks from the track menu',
               ),
             )
           else
@@ -116,6 +143,67 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  void _showRenameDialog(String currentName) {
+    final controller = TextEditingController(text: currentName);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Playlist'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Playlist name',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                context.read<UserPlaylistProvider>().renamePlaylist(widget.playlistId, controller.text);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Rename'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Playlist'),
+        content: const Text('Are you sure you want to delete this playlist?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              context.read<UserPlaylistProvider>().deletePlaylist(widget.playlistId);
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.onError)),
+          ),
         ],
       ),
     );

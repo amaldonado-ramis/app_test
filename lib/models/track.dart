@@ -1,137 +1,96 @@
-import 'package:echobeat/models/audio_quality.dart';
+import 'package:echostream/models/album.dart';
+import 'package:echostream/models/artist.dart';
 
 class Track {
   final int id;
   final String title;
-  final String artist;
-  final int artistId;
-  final String albumTitle;
-  final String? albumCover;
-  final String albumId;
-  final String? releaseDate;
-  final String? genre;
   final int duration;
-  final AudioQuality? audioQuality;
-  final bool parentalWarning;
-  final bool streamable;
-  final TrackImages? images;
-  final String? isrc;
+  final Artist? artist;
+  final List<Artist>? artists;
+  final Album? album;
+  final String? audioQuality;
+  final int? popularity;
 
   Track({
     required this.id,
     required this.title,
-    required this.artist,
-    required this.artistId,
-    required this.albumTitle,
-    this.albumCover,
-    required this.albumId,
-    this.releaseDate,
-    this.genre,
     required this.duration,
+    this.artist,
+    this.artists,
+    this.album,
     this.audioQuality,
-    this.parentalWarning = false,
-    this.streamable = true,
-    this.images,
-    this.isrc,
+    this.popularity,
   });
 
-  factory Track.fromJson(Map<String, dynamic> json) => Track(
-    id: json['id'] as int,
-    title: json['title'] as String? ?? '',
-    artist: json['artist'] as String? ?? '',
-    artistId: json['artistId'] as int? ?? 0,
-    albumTitle: json['albumTitle'] as String? ?? '',
-    albumCover: json['albumCover'] as String?,
-    albumId: json['albumId']?.toString() ?? '',
-    releaseDate: json['releaseDate'] as String?,
-    genre: json['genre'] as String?,
-    duration: json['duration'] as int? ?? 0,
-    audioQuality: json['audioQuality'] != null
-        ? AudioQuality.fromJson(json['audioQuality'])
+  factory Track.fromJson(Map<String, dynamic> json) {
+    Artist? primaryArtist;
+    List<Artist>? artistList;
+
+    if (json['artist'] != null) {
+      primaryArtist = Artist.fromJson(json['artist'] as Map<String, dynamic>);
+    }
+
+    if (json['artists'] != null && json['artists'] is List) {
+      artistList = (json['artists'] as List)
+          .map((a) => Artist.fromJson(a as Map<String, dynamic>))
+          .toList();
+      primaryArtist ??= artistList.isNotEmpty ? artistList.first : null;
+    }
+
+    return Track(
+      id: json['id'] as int,
+      title: json['title'] as String? ?? '',
+      duration: json['duration'] as int? ?? 0,
+      artist: primaryArtist,
+      artists: artistList,
+      album: json['album'] != null 
+        ? Album.fromJson(json['album'] as Map<String, dynamic>)
         : null,
-    parentalWarning: json['parental_warning'] as bool? ?? false,
-    streamable: json['streamable'] as bool? ?? true,
-    images: json['images'] != null ? TrackImages.fromJson(json['images']) : null,
-    isrc: json['isrc'] as String?,
-  );
+      audioQuality: json['audioQuality'] as String?,
+      popularity: json['popularity'] as int?,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
-    'artist': artist,
-    'artistId': artistId,
-    'albumTitle': albumTitle,
-    'albumCover': albumCover,
-    'albumId': albumId,
-    'releaseDate': releaseDate,
-    'genre': genre,
     'duration': duration,
-    'audioQuality': audioQuality?.toJson(),
-    'parental_warning': parentalWarning,
-    'streamable': streamable,
-    'images': images?.toJson(),
-    'isrc': isrc,
+    'artist': artist?.toJson(),
+    'artists': artists?.map((a) => a.toJson()).toList(),
+    'album': album?.toJson(),
+    'audioQuality': audioQuality,
+    'popularity': popularity,
   };
 
-  Track copyWith({
-    int? id,
-    String? title,
-    String? artist,
-    int? artistId,
-    String? albumTitle,
-    String? albumCover,
-    String? albumId,
-    String? releaseDate,
-    String? genre,
-    int? duration,
-    AudioQuality? audioQuality,
-    bool? parentalWarning,
-    bool? streamable,
-    TrackImages? images,
-    String? isrc,
-  }) => Track(
-    id: id ?? this.id,
-    title: title ?? this.title,
-    artist: artist ?? this.artist,
-    artistId: artistId ?? this.artistId,
-    albumTitle: albumTitle ?? this.albumTitle,
-    albumCover: albumCover ?? this.albumCover,
-    albumId: albumId ?? this.albumId,
-    releaseDate: releaseDate ?? this.releaseDate,
-    genre: genre ?? this.genre,
-    duration: duration ?? this.duration,
-    audioQuality: audioQuality ?? this.audioQuality,
-    parentalWarning: parentalWarning ?? this.parentalWarning,
-    streamable: streamable ?? this.streamable,
-    images: images ?? this.images,
-    isrc: isrc ?? this.isrc,
-  );
-
-  String get coverUrl => images?.large ?? albumCover ?? '';
+  String get artistName => artist?.name ?? 'Unknown Artist';
   
-  String get formattedDuration {
+  String get albumTitle => album?.title ?? 'Unknown Album';
+  
+  String get albumCoverUrl => album?.getCoverUrl() ?? '';
+
+  String formatDuration() {
     final minutes = duration ~/ 60;
     final seconds = duration % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
-}
 
-class TrackImages {
-  final String? small;
-  final String? thumbnail;
-  final String? large;
-
-  TrackImages({this.small, this.thumbnail, this.large});
-
-  factory TrackImages.fromJson(Map<String, dynamic> json) => TrackImages(
-    small: json['small'] as String?,
-    thumbnail: json['thumbnail'] as String?,
-    large: json['large'] as String?,
+  Track copyWith({
+    int? id,
+    String? title,
+    int? duration,
+    Artist? artist,
+    List<Artist>? artists,
+    Album? album,
+    String? audioQuality,
+    int? popularity,
+  }) => Track(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    duration: duration ?? this.duration,
+    artist: artist ?? this.artist,
+    artists: artists ?? this.artists,
+    album: album ?? this.album,
+    audioQuality: audioQuality ?? this.audioQuality,
+    popularity: popularity ?? this.popularity,
   );
-
-  Map<String, dynamic> toJson() => {
-    'small': small,
-    'thumbnail': thumbnail,
-    'large': large,
-  };
 }

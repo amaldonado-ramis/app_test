@@ -1,128 +1,301 @@
-# EchoBeat - Anonymous Music Streaming App Architecture
+# EchoStream - Anonymous Music Streaming App Architecture
+
+## Status: ✅ COMPLETED
 
 ## Overview
-EchoBeat is a fully functional, anonymous music streaming application inspired by Spotify. It provides track/album search, audio streaming, liked songs, and playlist management without any authentication or user accounts. All user data is stored locally.
+A fully functional, anonymous music streaming application inspired by Spotify, with a minimalist modern aesthetic. No authentication, no accounts, 100% local-first with all user data stored on device.
 
-## Architecture Layers
+### Completed Features
+✅ Music search (tracks, albums, artists, playlists)
+✅ Audio streaming with just_audio
+✅ Queue management with shuffle and repeat modes
+✅ Liked songs (stored locally)
+✅ User playlists (create, edit, delete)
+✅ Album and artist detail pages
+✅ Now playing screen with full controls
+✅ Mini player with bottom navigation
+✅ Recursive API response parsing
+✅ Stream URL resolution (FLAC and manifest decoding)
+✅ Local persistence with shared_preferences
+✅ Vibrant, modern UI with purple/blue theme
 
-### 1. API Client Layer (`lib/services/api_client.dart`)
-- HTTP client with cookie-based authentication
-- Base URL: `https://dab.yeet.su/api`
-- Session cookie management (JWT token)
-- Request/response handling with proper error management
-- Endpoints:
-  - GET `/search?q=query&offset=0&type=track` - Search tracks
-  - GET `/search?q=query&offset=0&type=album` - Search albums
-  - GET `/stream?trackId=id` - Get streaming URL (no auth required)
+## Technical Stack
+- Flutter/Dart (latest)
+- Local storage: shared_preferences
+- Audio playback: just_audio
+- HTTP client: http
+- State management: Provider
+- Navigation: go_router
 
-### 2. Domain Models (`lib/models/`)
-- `track.dart` - Track entity with full metadata
-- `album.dart` - Album entity
-- `playlist.dart` - Local playlist with metadata
-- `audio_quality.dart` - Audio quality information
-- `pagination.dart` - Pagination metadata
-- `search_response.dart` - API response wrappers
+## Core Principles
+- 100% anonymous usage
+- No authentication/accounts
+- All user data stored locally
+- Clean, layered architecture
+- Strong typing and null safety
+- API behavior followed exactly as specified
 
-### 3. Services (`lib/services/`)
-- `api_service.dart` - High-level API operations (search, stream)
-- `storage_service.dart` - Local persistence (SharedPreferences)
-- `liked_songs_service.dart` - Manage liked tracks
-- `playlist_service.dart` - CRUD operations for playlists
-- `playback_service.dart` - Audio playback engine with state management
+## API Architecture
 
-### 4. State Management (`lib/providers/`)
-- `playback_provider.dart` - Current playback state, queue, controls
-- `library_provider.dart` - Liked songs and playlists
-- `search_provider.dart` - Search state with debouncing
+### Base URL
+`https://tidal.kinoplus.online`
 
-### 5. UI Screens (`lib/screens/`)
-- `home_screen.dart` - Main navigation hub with search
-- `search_results_screen.dart` - Display search results
-- `album_detail_screen.dart` - Album tracks view
-- `liked_songs_screen.dart` - User's liked songs
-- `playlists_screen.dart` - Playlist management
-- `playlist_detail_screen.dart` - Individual playlist view
-- `now_playing_screen.dart` - Full-screen player
+### Key Characteristics
+- Inconsistent response structures requiring recursive JSON traversal
+- Dynamic nesting requiring normalization layer
+- Temporary stream URLs requiring re-fetch on expiration
+- No authentication required
 
-### 6. UI Components (`lib/components/`)
-- `track_tile.dart` - Reusable track list item
-- `album_card.dart` - Album grid/list card
-- `mini_player.dart` - Bottom mini player bar
-- `player_controls.dart` - Play/pause/skip controls
-- `progress_bar.dart` - Seekable progress indicator
-- `search_bar_widget.dart` - Search input with debounce
-- `playlist_tile.dart` - Playlist list item
-- `add_to_playlist_dialog.dart` - Playlist selection dialog
+## Data Models (lib/models/)
 
-## Data Flow
+### Core Models
+1. **Track** - Normalized track with metadata
+2. **Album** - Album metadata
+3. **Artist** - Artist information
+4. **Playlist** - User-created playlist (local)
+5. **PlaylistPreview** - API playlist preview
+6. **StreamInfo** - Resolved stream URL and metadata
+7. **PlaybackState** - Current queue and player state
 
-### Search Flow
-1. User enters query in `SearchBarWidget`
-2. `SearchProvider` debounces input (300ms)
-3. `ApiService.searchTracks()` or `searchAlbums()` called
-4. API response parsed into domain models
-5. UI updates with results and pagination support
+### Model Features
+- All models with toJson/fromJson
+- Nullable fields where API is inconsistent
+- Image URL generation helpers
+- Duration handling in seconds
 
-### Playback Flow
-1. User selects track from any screen
-2. `PlaybackProvider.playTrack()` called
-3. `ApiService.getStreamUrl()` fetches temporary URL
-4. `PlaybackService` loads URL into audio player
-5. Playback state updates (playing, buffering, progress)
-6. Mini player and now playing screen reflect state
+## Service Layer (lib/services/)
 
-### Local Storage Flow
-1. Liked songs stored as Set<int> of track IDs
-2. Playlists stored as List<Map> with metadata
-3. Track metadata cached for quick access
-4. All persistence via `StorageService` with JSON serialization
+### 1. API Client Service
+- Raw HTTP requests
+- Error handling
+- Response caching (short-term)
+- Base URL configuration
 
-## Key Technical Decisions
+### 2. Search Service
+- Recursive JSON traversal to find 'items' arrays
+- Track/Album/Artist/Playlist search
+- Normalization of inconsistent API responses
+- Debounced search
 
-1. **Cookie-based Authentication**: Use `http` package with custom headers/cookies for session JWT
-2. **Local Storage**: SharedPreferences for all user data (no backend sync)
-3. **Audio Playback**: `audioplayers` package for cross-platform streaming
-4. **State Management**: Provider pattern for reactive UI
-5. **Search Debouncing**: Timer-based debouncing to reduce API calls
-6. **Pagination**: Offset-based pagination with "Load More" functionality
-7. **Error Handling**: Graceful degradation with user-friendly messages
+### 3. Track Service
+- Track metadata fetch
+- Stream URL resolution (FLAC or manifest decode)
+- Manifest parsing (Base64 → JSON/regex)
+- Stream URL caching with expiration
 
-## Session Cookie Configuration
+### 4. Album Service
+- Album details fetch
+- Track list extraction and normalization
+- Missing metadata reconstruction
 
-The session JWT cookie is configured via environment or hardcoded constant:
-- Cookie name: `session`
-- Value: JWT token string
-- Applied to all authenticated API requests (except `/stream`)
-- Store in `lib/config/api_config.dart` as a constant
+### 5. Playlist Service (API)
+- Editorial playlist fetch
+- Track extraction
 
-## UI Design Approach
+### 6. Artist Service
+- Artist metadata fetch
+- Artist content feed fetch
+- Album/EP/Singles extraction
+- Fallback album search by name
+- Data merging
 
-**Sophisticated Monochrome with Music-Forward Accent**
-- Light Mode: White backgrounds (#FFFFFF), soft blue-grey cards (#F8FAFC)
-- Dark Mode: Deep charcoal (#0F1419) with blue-grey elevations (#1A1F26)
-- Accent: Vibrant purple/pink gradient for music branding (#8B5CF6 → #EC4899)
-- Flat design, no shadows, generous spacing
-- Inter font family throughout
-- Rounded corners (12-16px) on all components
+### 7. Liked Songs Service (Local)
+- Set<int> of track IDs
+- Add/remove/check operations
+- Persistence with shared_preferences
+
+### 8. User Playlist Service (Local)
+- Create/update/delete playlists
+- Track management (add/remove/reorder)
+- UUID generation for playlist IDs
+- Persistence with shared_preferences
+- Lazy track resolution by ID
+
+### 9. Playback Service
+- Audio player management (just_audio)
+- Queue management
+- Play/pause/seek/next/previous
+- Shuffle/repeat modes
+- Stream URL resolution and retry
+- Current track state
+- Progress tracking
+- Error handling
+
+## UI Architecture (lib/screens/)
+
+### Navigation Structure
+1. **Main Shell** (Bottom navigation)
+   - Home/Discover
+   - Search
+   - Library
+
+2. **Home Screen**
+   - Featured content
+   - Recently played
+   - Recommended playlists
+
+3. **Search Screen**
+   - Search input with debounce
+   - Tab view: Tracks/Albums/Artists/Playlists
+   - Result lists with cards
+
+4. **Library Screen**
+   - Liked Songs
+   - User Playlists
+   - Create playlist button
+
+5. **Album Detail Screen**
+   - Album art and metadata
+   - Track list
+   - Play album button
+
+6. **Artist Detail Screen**
+   - Artist image and name
+   - Top tracks
+   - Albums/EPs/Singles tabs
+
+7. **Playlist Detail Screen**
+   - Playlist info
+   - Track list
+   - Edit/delete for user playlists
+
+8. **Now Playing Screen**
+   - Large album art
+   - Track info
+   - Playback controls
+   - Progress bar
+   - Queue view
+
+## Providers (lib/providers/)
+
+1. **PlaybackProvider**
+   - Wraps PlaybackService
+   - Notifies UI of state changes
+   - Current track, queue, position
+   - Player controls
+
+2. **LikedSongsProvider**
+   - Wraps LikedSongsService
+   - Track like/unlike
+   - Check if track is liked
+
+3. **UserPlaylistProvider**
+   - Wraps UserPlaylistService
+   - Playlist CRUD
+   - Track management
+
+## Widgets (lib/widgets/)
+
+### Reusable Components
+1. **TrackListTile** - Track item with play button, title, artist, duration, like button
+2. **AlbumCard** - Album cover with title and artist
+3. **ArtistCard** - Circular artist image with name
+4. **PlaylistCard** - Playlist cover with title and track count
+5. **PlayerControls** - Play/pause, next/previous buttons
+6. **ProgressBar** - Seekable progress indicator
+7. **MiniPlayer** - Bottom mini player bar
+8. **SearchBar** - Custom search input
+9. **LoadingIndicator** - Consistent loading state
+10. **EmptyState** - Empty state with message
+
+## Design System
+
+### Color Palette (Music App - Vibrant & Energetic)
+- Light Mode:
+  - Primary: Vibrant purple (#8B5CF6)
+  - Secondary: Electric blue (#3B82F6)
+  - Background: Pure white (#FFFFFF)
+  - Surface: Light gray (#F9FAFB)
+  - Accent: Pink (#EC4899)
+
+- Dark Mode:
+  - Primary: Lighter purple (#A78BFA)
+  - Secondary: Brighter blue (#60A5FA)
+  - Background: Deep black (#0A0A0A)
+  - Surface: Dark gray (#1A1A1A)
+  - Accent: Bright pink (#F472B6)
+
+### Typography
+- Primary: Inter (already configured)
+- Hierarchy: Clear sizing for headers, titles, body, captions
+
+### Spacing
+- Generous padding and margins
+- Card-based layouts
+- Rounded corners (16-24px)
 
 ## Implementation Steps
 
-1. ✅ Create architecture document
-2. ✅ Add dependencies (http, audioplayers, shared_preferences, uuid)
-3. ✅ Implement domain models with JSON serialization
-4. ✅ Build API client with cookie support
-5. ✅ Create service layer (API, storage, playback)
-6. ✅ Implement state providers
-7. ✅ Design and build reusable UI components
-8. ✅ Construct all screens with navigation
-9. ✅ Update theme with custom color palette
-10. ✅ Add error handling and loading states
-11. ✅ Test and debug with compile_project
+1. **Setup & Dependencies**
+   - Add required packages
+   - Update theme with music app colors
 
-## Future Enhancements (Not in MVP)
-- Offline mode with downloaded tracks
-- Advanced playlist features (reordering, duplicates)
-- Track analytics and listening history
-- Export/import playlists
+2. **Data Models**
+   - Define all models with serialization
+   - Image URL helpers
+
+3. **API Layer**
+   - API client service
+   - Search service with recursive traversal
+   - Track service with stream resolution
+   - Album/Artist/Playlist services
+
+4. **Local Storage**
+   - Liked songs service
+   - User playlist service
+   - Playback state persistence
+
+5. **Playback Engine**
+   - Audio player integration
+   - Queue management
+   - State tracking
+
+6. **Providers**
+   - Playback provider
+   - Liked songs provider
+   - User playlist provider
+
+7. **UI Components**
+   - Reusable widgets
+   - Navigation shell
+   - Screen implementations
+
+8. **Integration & Testing**
+   - Connect all layers
+   - Error handling
+   - Edge cases
+
+9. **Polish**
+   - Animations
+   - Loading states
+   - Empty states
+   - Error messages
+
+10. **Debugging**
+    - Compile project
+    - Fix errors
+    - Test functionality
+
+## Error Handling
+
+- Network errors: Show retry option
+- Empty results: Display empty state
+- Missing fields: Graceful fallbacks
+- Expired streams: Auto re-fetch
+- Invalid manifests: Log and skip
+
+## Performance Optimizations
+
+- Debounce search input (300ms)
+- Cache search results (5 min)
+- Lazy load images
+- Dispose audio resources properly
+- Minimize rebuilds with proper provider scoping
+
+## Future Enhancements
+- Download for offline playback
 - Lyrics display
-- Equalizer and audio effects
+- Audio equalizer
+- Sleep timer
+- Crossfade
+- Gapless playback

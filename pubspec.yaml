@@ -1,5 +1,5 @@
-name: echobeat
-description: "Dive into the rhythm with this anonymous music streaming app, where you can search, stream, and curate playlists of your favorite tracks without ever revealing who you are!"
+name: echostream
+description: "Dive into an anonymous, local-first music experience with this sleek Flutter app, offering seamless streaming, personalized playlists, and a minimalist design, all without accounts or server-side user data."
 publish_to: "none"
 version: 1.0.0
 
@@ -13,11 +13,11 @@ dependencies:
   google_fonts: ^6.1.0
   provider: ^6.1.2
   go_router: ^16.2.0
+  just_audio: 0.10.5
   http: ^1.0.0
-  audioplayers: ^6.0.0
   shared_preferences: ^2.0.0
   uuid: ^4.0.0
-  dio_cookie_manager: ^3.3.0
+  cached_network_image: ^3.0.0
 
 dev_dependencies:
   flutter_test:

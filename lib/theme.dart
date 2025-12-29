@@ -78,20 +78,20 @@ extension TextStyleExtensions on TextStyle {
 // COLORS
 // =============================================================================
 
-/// Sophisticated monochrome palette with music accent for light mode
+/// Vibrant, energetic color palette for music streaming app (light mode)
 class LightModeColors {
-  // Primary: Vibrant music accent
+  // Primary: Vibrant purple
   static const lightPrimary = Color(0xFF8B5CF6);
   static const lightOnPrimary = Color(0xFFFFFFFF);
-  static const lightPrimaryContainer = Color(0xFFF3E8FF);
-  static const lightOnPrimaryContainer = Color(0xFF3B0764);
+  static const lightPrimaryContainer = Color(0xFFEDE9FE);
+  static const lightOnPrimaryContainer = Color(0xFF4C1D95);
 
-  // Secondary: Soft pink accent
-  static const lightSecondary = Color(0xFFEC4899);
+  // Secondary: Electric blue
+  static const lightSecondary = Color(0xFF3B82F6);
   static const lightOnSecondary = Color(0xFFFFFFFF);
 
-  // Tertiary: Deep charcoal for text
-  static const lightTertiary = Color(0xFF1F2937);
+  // Tertiary: Pink accent
+  static const lightTertiary = Color(0xFFEC4899);
   static const lightOnTertiary = Color(0xFFFFFFFF);
 
   // Error colors
@@ -100,34 +100,34 @@ class LightModeColors {
   static const lightErrorContainer = Color(0xFFFEE2E2);
   static const lightOnErrorContainer = Color(0xFF7F1D1D);
 
-  // Surface and background: Pure white with soft grey cards
+  // Surface and background: Clean white with subtle grays
   static const lightSurface = Color(0xFFFFFFFF);
-  static const lightOnSurface = Color(0xFF1F2937);
+  static const lightOnSurface = Color(0xFF18181B);
   static const lightBackground = Color(0xFFFAFAFA);
-  static const lightSurfaceVariant = Color(0xFFF8FAFC);
-  static const lightOnSurfaceVariant = Color(0xFF6B7280);
+  static const lightSurfaceVariant = Color(0xFFF4F4F5);
+  static const lightOnSurfaceVariant = Color(0xFF52525B);
 
-  // Outline
-  static const lightOutline = Color(0xFFE5E7EB);
+  // Outline and shadow
+  static const lightOutline = Color(0xFFE4E4E7);
   static const lightShadow = Color(0xFF000000);
-  static const lightInversePrimary = Color(0xFFC4B5FD);
+  static const lightInversePrimary = Color(0xFFA78BFA);
 }
 
-/// Dark mode: Deep charcoal with vibrant music accent
+/// Vibrant, energetic color palette for music streaming app (dark mode)
 class DarkModeColors {
-  // Primary: Vibrant purple accent
+  // Primary: Lighter purple for visibility
   static const darkPrimary = Color(0xFFA78BFA);
-  static const darkOnPrimary = Color(0xFF3B0764);
+  static const darkOnPrimary = Color(0xFF4C1D95);
   static const darkPrimaryContainer = Color(0xFF6D28D9);
-  static const darkOnPrimaryContainer = Color(0xFFF3E8FF);
+  static const darkOnPrimaryContainer = Color(0xFFEDE9FE);
 
-  // Secondary: Pink accent
-  static const darkSecondary = Color(0xFFF472B6);
-  static const darkOnSecondary = Color(0xFF831843);
+  // Secondary: Brighter blue
+  static const darkSecondary = Color(0xFF60A5FA);
+  static const darkOnSecondary = Color(0xFF1E3A8A);
 
-  // Tertiary: Light grey for secondary text
-  static const darkTertiary = Color(0xFF9CA3AF);
-  static const darkOnTertiary = Color(0xFF111827);
+  // Tertiary: Bright pink
+  static const darkTertiary = Color(0xFFF472B6);
+  static const darkOnTertiary = Color(0xFF831843);
 
   // Error colors
   static const darkError = Color(0xFFF87171);
@@ -135,14 +135,14 @@ class DarkModeColors {
   static const darkErrorContainer = Color(0xFF991B1B);
   static const darkOnErrorContainer = Color(0xFFFEE2E2);
 
-  // Surface and background: Deep charcoal
-  static const darkSurface = Color(0xFF0F1419);
-  static const darkOnSurface = Color(0xFFF9FAFB);
-  static const darkSurfaceVariant = Color(0xFF1A1F26);
-  static const darkOnSurfaceVariant = Color(0xFF9CA3AF);
+  // Surface and background: Deep blacks with subtle elevation
+  static const darkSurface = Color(0xFF0A0A0A);
+  static const darkOnSurface = Color(0xFFF4F4F5);
+  static const darkSurfaceVariant = Color(0xFF1A1A1A);
+  static const darkOnSurfaceVariant = Color(0xFFA1A1AA);
 
-  // Outline
-  static const darkOutline = Color(0xFF2A3340);
+  // Outline and shadow
+  static const darkOutline = Color(0xFF27272A);
   static const darkShadow = Color(0xFF000000);
   static const darkInversePrimary = Color(0xFF8B5CF6);
 }
@@ -201,45 +201,15 @@ ThemeData get lightTheme => ThemeData(
     foregroundColor: LightModeColors.lightOnSurface,
     elevation: 0,
     scrolledUnderElevation: 0,
-    iconTheme: IconThemeData(color: LightModeColors.lightOnSurface),
   ),
   cardTheme: CardThemeData(
     elevation: 0,
-    color: LightModeColors.lightSurfaceVariant,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-    ),
-  ),
-  iconTheme: const IconThemeData(color: LightModeColors.lightOnSurface),
-  elevatedButtonTheme: ElevatedButtonThemeData(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: LightModeColors.lightPrimary,
-      foregroundColor: LightModeColors.lightOnPrimary,
-      iconColor: LightModeColors.lightOnPrimary,
-      elevation: 0,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  ),
-  outlinedButtonTheme: OutlinedButtonThemeData(
-    style: OutlinedButton.styleFrom(
-      foregroundColor: LightModeColors.lightPrimary,
-      iconColor: LightModeColors.lightPrimary,
-      side: const BorderSide(color: LightModeColors.lightOutline),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  ),
-  textButtonTheme: TextButtonThemeData(
-    style: TextButton.styleFrom(
-      foregroundColor: LightModeColors.lightPrimary,
-      iconColor: LightModeColors.lightPrimary,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    ),
-  ),
-  iconButtonTheme: IconButtonThemeData(
-    style: IconButton.styleFrom(
-      foregroundColor: LightModeColors.lightOnSurface,
+      borderRadius: BorderRadius.circular(12),
+      side: BorderSide(
+        color: LightModeColors.lightOutline.withValues(alpha: 0.2),
+        width: 1,
+      ),
     ),
   ),
   textTheme: _buildTextTheme(Brightness.light),
@@ -276,45 +246,15 @@ ThemeData get darkTheme => ThemeData(
     foregroundColor: DarkModeColors.darkOnSurface,
     elevation: 0,
     scrolledUnderElevation: 0,
-    iconTheme: IconThemeData(color: DarkModeColors.darkOnSurface),
   ),
   cardTheme: CardThemeData(
     elevation: 0,
-    color: DarkModeColors.darkSurfaceVariant,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-    ),
-  ),
-  iconTheme: const IconThemeData(color: DarkModeColors.darkOnSurface),
-  elevatedButtonTheme: ElevatedButtonThemeData(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: DarkModeColors.darkPrimary,
-      foregroundColor: DarkModeColors.darkOnPrimary,
-      iconColor: DarkModeColors.darkOnPrimary,
-      elevation: 0,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  ),
-  outlinedButtonTheme: OutlinedButtonThemeData(
-    style: OutlinedButton.styleFrom(
-      foregroundColor: DarkModeColors.darkPrimary,
-      iconColor: DarkModeColors.darkPrimary,
-      side: const BorderSide(color: DarkModeColors.darkOutline),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  ),
-  textButtonTheme: TextButtonThemeData(
-    style: TextButton.styleFrom(
-      foregroundColor: DarkModeColors.darkPrimary,
-      iconColor: DarkModeColors.darkPrimary,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    ),
-  ),
-  iconButtonTheme: IconButtonThemeData(
-    style: IconButton.styleFrom(
-      foregroundColor: DarkModeColors.darkOnSurface,
+      borderRadius: BorderRadius.circular(12),
+      side: BorderSide(
+        color: DarkModeColors.darkOutline.withValues(alpha: 0.2),
+        width: 1,
+      ),
     ),
   ),
   textTheme: _buildTextTheme(Brightness.dark),

@@ -1,152 +1,93 @@
-import 'dart:async';
+import 'package:echostream/models/track.dart';
+import 'package:echostream/services/playback_service.dart';
 import 'package:flutter/foundation.dart';
-import 'package:echobeat/models/track.dart';
-import 'package:echobeat/services/api_service.dart';
-import 'package:echobeat/services/playback_service.dart';
+import 'package:just_audio/just_audio.dart';
 
 class PlaybackProvider with ChangeNotifier {
-  final ApiService _apiService = ApiService();
-  final PlaybackService _playbackService = PlaybackService();
+  final PlaybackService _service = PlaybackService();
+  bool _isInitialized = false;
 
-  Track? _currentTrack;
-  Track? get currentTrack => _currentTrack;
+  PlaybackService get service => _service;
+  List<Track> get queue => _service.queue;
+  Track? get currentTrack => _service.currentTrack;
+  int get currentIndex => _service.currentIndex;
+  bool get isShuffled => _service.isShuffled;
+  RepeatMode get repeatMode => _service.repeatMode;
+  bool get hasNext => _service.hasNext;
+  bool get hasPrevious => _service.hasPrevious;
 
-  List<Track> _queue = [];
-  List<Track> get queue => _queue;
+  Stream<Duration> get positionStream => _service.positionStream;
+  Stream<Duration?> get durationStream => _service.durationStream;
+  Stream<PlayerState> get playerStateStream => _service.playerStateStream;
+  Stream<bool> get playingStream => _service.playingStream;
 
-  int _currentIndex = 0;
-  int get currentIndex => _currentIndex;
-
-  PlayerState _playerState = PlayerState.stopped;
-  PlayerState get playerState => _playerState;
-
-  Duration _position = Duration.zero;
-  Duration get position => _position;
-
-  Duration _duration = Duration.zero;
-  Duration get duration => _duration;
-
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
-
-  String? _error;
-  String? get error => _error;
-
-  StreamSubscription? _stateSubscription;
-  StreamSubscription? _positionSubscription;
-  StreamSubscription? _durationSubscription;
-
-  PlaybackProvider() {
-    _initializeListeners();
-  }
-
-  void _initializeListeners() {
-    _stateSubscription = _playbackService.onStateChanged.listen((state) {
-      _playerState = state;
-      if (state == PlayerState.stopped && _currentIndex < _queue.length - 1) {
-        playNext();
-      }
-      notifyListeners();
-    });
-
-    _positionSubscription = _playbackService.onPositionChanged.listen((pos) {
-      _position = pos;
-      notifyListeners();
-    });
-
-    _durationSubscription = _playbackService.onDurationChanged.listen((dur) {
-      _duration = dur ?? Duration.zero;
+  Future<void> init() async {
+    if (_isInitialized) return;
+    await _service.init();
+    _isInitialized = true;
+    
+    _service.playerStateStream.listen((_) {
       notifyListeners();
     });
   }
 
-  Future<void> playTrack(Track track, {List<Track>? playlist}) async {
-    if (!track.streamable) {
-      _error = 'This track is not streamable';
-      notifyListeners();
-      return;
-    }
-
-    _isLoading = true;
-    _error = null;
+  Future<void> setQueue(List<Track> tracks, {int startIndex = 0}) async {
+    await _service.setQueue(tracks, startIndex: startIndex);
     notifyListeners();
+  }
 
-    try {
-      if (playlist != null) {
-        _queue = playlist;
-        _currentIndex = playlist.indexOf(track);
-      } else {
-        _queue = [track];
-        _currentIndex = 0;
-      }
+  Future<void> addToQueue(Track track) async {
+    await _service.addToQueue(track);
+    notifyListeners();
+  }
 
-      _currentTrack = track;
-      final streamUrl = await _apiService.getStreamUrl(track.id);
-      
-      if (streamUrl.isEmpty) {
-        throw Exception('Failed to get stream URL');
-      }
+  Future<void> playTrackAt(int index) async {
+    await _service.playTrackAt(index);
+    notifyListeners();
+  }
 
-      await _playbackService.play(streamUrl);
-    } catch (e) {
-      debugPrint('Error playing track: $e');
-      _error = 'Failed to play track';
-      _playerState = PlayerState.error;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+  Future<void> play() async {
+    await _service.play();
+  }
+
+  Future<void> pause() async {
+    await _service.pause();
   }
 
   Future<void> togglePlayPause() async {
-    if (_playerState == PlayerState.playing) {
-      await _playbackService.pause();
-    } else if (_playerState == PlayerState.paused) {
-      await _playbackService.resume();
-    }
-  }
-
-  Future<void> playNext() async {
-    if (_currentIndex < _queue.length - 1) {
-      _currentIndex++;
-      await playTrack(_queue[_currentIndex], playlist: _queue);
-    }
-  }
-
-  Future<void> playPrevious() async {
-    if (_position.inSeconds > 3) {
-      await seek(Duration.zero);
-    } else if (_currentIndex > 0) {
-      _currentIndex--;
-      await playTrack(_queue[_currentIndex], playlist: _queue);
-    }
+    await _service.togglePlayPause();
   }
 
   Future<void> seek(Duration position) async {
-    await _playbackService.seek(position);
+    await _service.seek(position);
   }
 
-  Future<void> stop() async {
-    await _playbackService.stop();
-    _currentTrack = null;
-    _queue = [];
-    _currentIndex = 0;
-    _position = Duration.zero;
-    _duration = Duration.zero;
+  Future<void> next() async {
+    await _service.next();
+  }
+
+  Future<void> previous() async {
+    await _service.previous();
+  }
+
+  void toggleShuffle() {
+    _service.toggleShuffle();
     notifyListeners();
   }
 
-  bool get hasNext => _currentIndex < _queue.length - 1;
-  bool get hasPrevious => _currentIndex > 0 || _position.inSeconds > 3;
-  bool get isPlaying => _playerState == PlayerState.playing;
+  void cycleRepeatMode() {
+    _service.cycleRepeatMode();
+    notifyListeners();
+  }
+
+  void clearQueue() {
+    _service.clearQueue();
+    notifyListeners();
+  }
 
   @override
   void dispose() {
-    _stateSubscription?.cancel();
-    _positionSubscription?.cancel();
-    _durationSubscription?.cancel();
-    _playbackService.dispose();
-    _apiService.dispose();
+    _service.dispose();
     super.dispose();
   }
 }

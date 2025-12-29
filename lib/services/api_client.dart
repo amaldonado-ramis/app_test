@@ -1,52 +1,81 @@
 import 'dart:convert';
-import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import 'package:echobeat/config/api_config.dart';
 
 class ApiClient {
-  final Dio _dio;
+  static const String baseUrl = 'https://tidal.kinoplus.online';
+  final Map<String, CachedResponse> _cache = {};
 
-  ApiClient()
-      : _dio = Dio(BaseOptions(
-          baseUrl: ApiConfig.baseUrl,
-          headers: {'Content-Type': 'application/json'},
-        ));
+  Future<dynamic> get(String endpoint) async {
+    final url = '$baseUrl$endpoint';
+    
+    if (_cache.containsKey(url)) {
+      final cached = _cache[url]!;
+      if (!cached.isExpired) {
+        return cached.data;
+      }
+    }
 
-  Future<Map<String, dynamic>> get(String endpoint) async {
     try {
-      final response = await _dio.get(endpoint);
-
+      final response = await http.get(Uri.parse(url));
+      
       if (response.statusCode == 200) {
-        if (response.data is Map<String, dynamic>) {
-          return response.data;
-        } else {
-          return json.decode(response.data.toString()) as Map<String, dynamic>;
-        }
+        final data = json.decode(response.body);
+        _cache[url] = CachedResponse(data);
+        return data;
       } else {
-        debugPrint('API Error: ${response.statusCode} - ${response.data}');
-        throw ApiException(
-          'Request failed with status: ${response.statusCode}',
-          response.statusCode,
-        );
+        debugPrint('API Error: ${response.statusCode} for $url');
+        throw ApiException('Failed to fetch data: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('API Client Error: $e');
-      rethrow;
+      debugPrint('Network error: $e');
+      throw ApiException('Network error: $e');
     }
   }
 
-  void dispose() {
-    _dio.close();
+  dynamic findItems(dynamic json) {
+    if (json == null) return null;
+    
+    if (json is Map<String, dynamic>) {
+      if (json.containsKey('items') && json['items'] is List) {
+        return json['items'];
+      }
+      
+      for (var value in json.values) {
+        final result = findItems(value);
+        if (result != null) return result;
+      }
+    } else if (json is List) {
+      for (var item in json) {
+        final result = findItems(item);
+        if (result != null) return result;
+      }
+    }
+    
+    return null;
+  }
+
+  void clearCache() {
+    _cache.clear();
+  }
+}
+
+class CachedResponse {
+  final dynamic data;
+  final DateTime timestamp;
+
+  CachedResponse(this.data) : timestamp = DateTime.now();
+
+  bool get isExpired {
+    final age = DateTime.now().difference(timestamp);
+    return age.inMinutes > 5;
   }
 }
 
 class ApiException implements Exception {
   final String message;
-  final int? statusCode;
-
-  ApiException(this.message, [this.statusCode]);
+  ApiException(this.message);
 
   @override
-  String toString() =>
-      'ApiException: $message${statusCode != null ? ' (Status: $statusCode)' : ''}';
+  String toString() => message;
 }

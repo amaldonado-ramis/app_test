@@ -1,99 +1,225 @@
-import 'package:audioplayers/audioplayers.dart' as ap;
+import 'package:echostream/models/track.dart';
+import 'package:echostream/services/track_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:just_audio/just_audio.dart';
 
-enum PlayerState { stopped, playing, paused, buffering, error }
+enum RepeatMode { off, all, one }
 
 class PlaybackService {
-  final ap.AudioPlayer _player = ap.AudioPlayer();
+  final AudioPlayer _player = AudioPlayer();
+  final TrackService _trackService = TrackService();
   
-  PlayerState _state = PlayerState.stopped;
-  PlayerState get state => _state;
-  
-  Duration _duration = Duration.zero;
-  Duration get duration => _duration;
-  
-  Duration _position = Duration.zero;
-  Duration get position => _position;
+  List<Track> _queue = [];
+  int _currentIndex = -1;
+  bool _isShuffled = false;
+  RepeatMode _repeatMode = RepeatMode.off;
+  List<int> _shuffleIndices = [];
 
-  Stream<PlayerState> get onStateChanged => _player.onPlayerStateChanged.map((state) {
-    switch (state) {
-      case ap.PlayerState.playing:
-        _state = PlayerState.playing;
-        return PlayerState.playing;
-      case ap.PlayerState.paused:
-        _state = PlayerState.paused;
-        return PlayerState.paused;
-      case ap.PlayerState.stopped:
-        _state = PlayerState.stopped;
-        return PlayerState.stopped;
-      case ap.PlayerState.completed:
-        _state = PlayerState.stopped;
-        return PlayerState.stopped;
-      default:
-        return _state;
+  AudioPlayer get player => _player;
+  List<Track> get queue => List.unmodifiable(_queue);
+  int get currentIndex => _currentIndex;
+  Track? get currentTrack => _currentIndex >= 0 && _currentIndex < _queue.length ? _queue[_currentIndex] : null;
+  bool get isShuffled => _isShuffled;
+  RepeatMode get repeatMode => _repeatMode;
+  bool get hasNext => _getNextIndex() != -1;
+  bool get hasPrevious => _getPreviousIndex() != -1;
+
+  Stream<Duration> get positionStream => _player.positionStream;
+  Stream<Duration?> get durationStream => _player.durationStream;
+  Stream<PlayerState> get playerStateStream => _player.playerStateStream;
+  Stream<bool> get playingStream => _player.playingStream;
+
+  Future<void> init() async {
+    _player.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        _onTrackCompleted();
+      }
+    });
+  }
+
+  Future<void> setQueue(List<Track> tracks, {int startIndex = 0}) async {
+    _queue = tracks;
+    _currentIndex = startIndex;
+    _shuffleIndices = List.generate(tracks.length, (i) => i);
+    if (_isShuffled) {
+      _shuffleQueue(preserveCurrent: true);
     }
-  });
+    await playTrackAt(startIndex);
+  }
 
-  Stream<Duration> get onPositionChanged => _player.onPositionChanged.map((pos) {
-    _position = pos;
-    return pos;
-  });
+  Future<void> addToQueue(Track track) async {
+    _queue.add(track);
+    if (_isShuffled) {
+      _shuffleIndices.add(_shuffleIndices.length);
+    }
+  }
 
-  Stream<Duration?> get onDurationChanged => _player.onDurationChanged.map((dur) {
-    _duration = dur ?? Duration.zero;
-    return dur;
-  });
-
-  Future<void> play(String url) async {
+  Future<void> playTrackAt(int index) async {
+    if (index < 0 || index >= _queue.length) return;
+    
+    _currentIndex = index;
+    final track = _queue[index];
+    
     try {
-      _state = PlayerState.buffering;
-      await _player.play(ap.UrlSource(url));
+      final streamInfo = await _trackService.getStreamInfo(track.id);
+      if (streamInfo == null) {
+        debugPrint('Could not get stream URL for track ${track.id}');
+        await next();
+        return;
+      }
+
+      await _player.setUrl(streamInfo.url);
+      await _player.play();
     } catch (e) {
       debugPrint('Error playing track: $e');
-      _state = PlayerState.error;
-      rethrow;
+      await next();
+    }
+  }
+
+  Future<void> play() async {
+    if (_player.playerState.processingState == ProcessingState.idle && currentTrack != null) {
+      await playTrackAt(_currentIndex);
+    } else {
+      await _player.play();
     }
   }
 
   Future<void> pause() async {
-    try {
-      await _player.pause();
-    } catch (e) {
-      debugPrint('Error pausing: $e');
-    }
+    await _player.pause();
   }
 
-  Future<void> resume() async {
-    try {
-      await _player.resume();
-    } catch (e) {
-      debugPrint('Error resuming: $e');
-    }
-  }
-
-  Future<void> stop() async {
-    try {
-      await _player.stop();
-      _position = Duration.zero;
-    } catch (e) {
-      debugPrint('Error stopping: $e');
+  Future<void> togglePlayPause() async {
+    if (_player.playing) {
+      await pause();
+    } else {
+      await play();
     }
   }
 
   Future<void> seek(Duration position) async {
-    try {
-      await _player.seek(position);
-    } catch (e) {
-      debugPrint('Error seeking: $e');
+    await _player.seek(position);
+  }
+
+  Future<void> next() async {
+    final nextIndex = _getNextIndex();
+    if (nextIndex != -1) {
+      await playTrackAt(nextIndex);
     }
   }
 
-  Future<void> setVolume(double volume) async {
-    try {
-      await _player.setVolume(volume);
-    } catch (e) {
-      debugPrint('Error setting volume: $e');
+  Future<void> previous() async {
+    if (_player.position.inSeconds > 3) {
+      await seek(Duration.zero);
+    } else {
+      final prevIndex = _getPreviousIndex();
+      if (prevIndex != -1) {
+        await playTrackAt(prevIndex);
+      }
     }
+  }
+
+  int _getNextIndex() {
+    if (_queue.isEmpty) return -1;
+
+    if (_repeatMode == RepeatMode.one) {
+      return _currentIndex;
+    }
+
+    int nextIndex;
+    if (_isShuffled) {
+      final currentShufflePos = _shuffleIndices.indexOf(_currentIndex);
+      if (currentShufflePos < _shuffleIndices.length - 1) {
+        nextIndex = _shuffleIndices[currentShufflePos + 1];
+      } else if (_repeatMode == RepeatMode.all) {
+        nextIndex = _shuffleIndices[0];
+      } else {
+        return -1;
+      }
+    } else {
+      if (_currentIndex < _queue.length - 1) {
+        nextIndex = _currentIndex + 1;
+      } else if (_repeatMode == RepeatMode.all) {
+        nextIndex = 0;
+      } else {
+        return -1;
+      }
+    }
+
+    return nextIndex;
+  }
+
+  int _getPreviousIndex() {
+    if (_queue.isEmpty) return -1;
+
+    int prevIndex;
+    if (_isShuffled) {
+      final currentShufflePos = _shuffleIndices.indexOf(_currentIndex);
+      if (currentShufflePos > 0) {
+        prevIndex = _shuffleIndices[currentShufflePos - 1];
+      } else if (_repeatMode == RepeatMode.all) {
+        prevIndex = _shuffleIndices[_shuffleIndices.length - 1];
+      } else {
+        return -1;
+      }
+    } else {
+      if (_currentIndex > 0) {
+        prevIndex = _currentIndex - 1;
+      } else if (_repeatMode == RepeatMode.all) {
+        prevIndex = _queue.length - 1;
+      } else {
+        return -1;
+      }
+    }
+
+    return prevIndex;
+  }
+
+  Future<void> _onTrackCompleted() async {
+    await next();
+  }
+
+  void toggleShuffle() {
+    _isShuffled = !_isShuffled;
+    if (_isShuffled) {
+      _shuffleQueue(preserveCurrent: true);
+    } else {
+      _shuffleIndices = List.generate(_queue.length, (i) => i);
+    }
+  }
+
+  void _shuffleQueue({bool preserveCurrent = false}) {
+    if (_queue.isEmpty) return;
+    
+    _shuffleIndices = List.generate(_queue.length, (i) => i);
+    
+    if (preserveCurrent && _currentIndex >= 0) {
+      _shuffleIndices.remove(_currentIndex);
+      _shuffleIndices.shuffle();
+      _shuffleIndices.insert(0, _currentIndex);
+    } else {
+      _shuffleIndices.shuffle();
+    }
+  }
+
+  void cycleRepeatMode() {
+    switch (_repeatMode) {
+      case RepeatMode.off:
+        _repeatMode = RepeatMode.all;
+        break;
+      case RepeatMode.all:
+        _repeatMode = RepeatMode.one;
+        break;
+      case RepeatMode.one:
+        _repeatMode = RepeatMode.off;
+        break;
+    }
+  }
+
+  void clearQueue() {
+    _queue.clear();
+    _currentIndex = -1;
+    _shuffleIndices.clear();
+    _player.stop();
   }
 
   void dispose() {
